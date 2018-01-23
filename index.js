@@ -136,6 +136,9 @@ class Plugin extends EventEmitter2 {
 
   registerDataHandler (handler) { this._dataHandler = handler }
   deregisterDataHandler (handler) { delete this._dataHandler }
+  sendMoney (amount) { return Promise.resolve() }
+  registerMoneyHandler (handler) { this._dataHandler = handler }
+  deregisterMoneyHandler (handler) { delete this._dataHandler }
 }
 Plugin.version = 2
 module.exports = Plugin
