@@ -137,4 +137,5 @@ class Plugin extends EventEmitter2 {
   registerDataHandler (handler) { this._dataHandler = handler }
   deregisterDataHandler (handler) { delete this._dataHandler }
 }
-Plugin.version = module.exports = Plugin
+Plugin.version = 2
+module.exports = Plugin
