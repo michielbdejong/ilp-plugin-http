@@ -15,66 +15,17 @@ class Plugin extends EventEmitter2 {
   }
 
   connect () {
-    this.server = http.createServer((req, res) => {
-      let chunks = []
-      req.on('data', (chunk) => { chunks.push(chunk) })
-      req.on('end', () => {
-        logServerRequest(req.headers, Buffer.concat(chunks))
-        // Convert from ilp-packet object field names described in:
-        // https://github.com/interledger/rfcs/blob/de237e8b9250d83d5e9d9dec58e7aca88c887b57/0000-ilp-over-http.md#request
-        // to the http header names described in:
-        // https://github.com/interledgerjs/ilp-packet/blob/7724aa28330d567e0afc9512ab966d11a0d19d3c/README.md#ilpprepare-ilpfulfill-ilpreject
-        Promise.resolve().then(() => {
-          return this._dataHandler(IlpPacket.serializeIlpPrepare({
-            destination:        req.headers['ilp-destination'],
-            executionCondition: Buffer.from(req.headers['ilp-condition'], 'base64'),
-            expiresAt:          new Date(req.headers['ilp-expiry']),
-            amount:             req.headers['ilp-amount'],
-            data:               Buffer.concat(chunks)
-          }))
-        }).then(response => {
-          const obj = IlpPacket.deserializeIlpPacket(response)
-          let statusCode
-          let headers
-          switch (obj.type) {
-            case IlpPacket.Type.TYPE_ILP_FULFILL:
-              statusCode = 200
-              headers = {
-                'ilp-fulfillment': obj.data.fulfillment.toString('base64'),
-              }
-              break
-            case IlpPacket.Type.TYPE_ILP_REJECT:
-              statusCode = 400
-              headers = {
-                'ilp-error-Code': obj.data.code,
-                'ilp-error-Name': obj.data.name,
-                'ilp-error-Triggered-By': obj.data.triggeredBy,
-                'ilp-error-Triggered-At': new Date().toISOString(),
-                'ilp-error-Forwarded-By': '',
-                'ilp-error-Message': obj.data.message,
-              }
-              break
-            default:
-              throw new Error('unexpected response type ' + obj.type)
-          }
-          logServerResponse(statusCode, headers, obj.data.data)
-          res.writeHead(statusCode, headers)
-          res.end(obj.data.data)
-        }).catch(err => {
-          logServerResponse(500, err)
-          res.writeHead(500)
-          res.end(err.message) // only for debugging, you probably want to disable this line in production
+    if (this.opts.port) {
+      this.server = http.createServer(this.handle.bind(this))
+      return new Promise(resolve => {
+        this.server.listen(this.opts.port, () => {
+          logPlugin('listening for http on port ' + this.opts.port)
+          this._connected = true
+          this.emit('connect')
+          resolve()
         })
       })
-    })
-    return new Promise(resolve => {
-      this.server.listen(this.opts.port, () => {
-        logPlugin('listening for http on port ' + this.opts.port)
-        this._connected = true
-        this.emit('connect')
-        resolve()
-      })
-    })
+    return Promise.resolve()
   }
   disconnect () {
     return new Promise(resolve => this.server.close(() => {
@@ -84,6 +35,59 @@ class Plugin extends EventEmitter2 {
     }))
   }
   isConnected () { return this._connected }
+
+  handle(req, res) => {
+    let chunks = []
+    req.on('data', (chunk) => { chunks.push(chunk) })
+    req.on('end', () => {
+      logServerRequest(req.headers, Buffer.concat(chunks))
+      // Convert from ilp-packet object field names described in:
+      // https://github.com/interledger/rfcs/blob/de237e8b9250d83d5e9d9dec58e7aca88c887b57/0000-ilp-over-http.md#request
+      // to the http header names described in:
+      // https://github.com/interledgerjs/ilp-packet/blob/7724aa28330d567e0afc9512ab966d11a0d19d3c/README.md#ilpprepare-ilpfulfill-ilpreject
+      Promise.resolve().then(() => {
+        return this._dataHandler(IlpPacket.serializeIlpPrepare({
+          destination:        req.headers['ilp-destination'],
+          executionCondition: Buffer.from(req.headers['ilp-condition'], 'base64'),
+          expiresAt:          new Date(req.headers['ilp-expiry']),
+          amount:             req.headers['ilp-amount'],
+          data:               Buffer.concat(chunks)
+        }))
+      }).then(response => {
+        const obj = IlpPacket.deserializeIlpPacket(response)
+        let statusCode
+        let headers
+        switch (obj.type) {
+          case IlpPacket.Type.TYPE_ILP_FULFILL:
+            statusCode = 200
+            headers = {
+              'ilp-fulfillment': obj.data.fulfillment.toString('base64'),
+            }
+            break
+          case IlpPacket.Type.TYPE_ILP_REJECT:
+            statusCode = 400
+            headers = {
+              'ilp-error-Code': obj.data.code,
+              'ilp-error-Name': obj.data.name,
+              'ilp-error-Triggered-By': obj.data.triggeredBy,
+              'ilp-error-Triggered-At': new Date().toISOString(),
+              'ilp-error-Forwarded-By': '',
+              'ilp-error-Message': obj.data.message,
+            }
+            break
+          default:
+            throw new Error('unexpected response type ' + obj.type)
+        }
+        logServerResponse(statusCode, headers, obj.data.data)
+        res.writeHead(statusCode, headers)
+        res.end(obj.data.data)
+      }).catch(err => {
+        logServerResponse(500, err)
+        res.writeHead(500)
+        res.end(err.message) // only for debugging, you probably want to disable this line in production
+      })
+    })
+  }
 
   sendData (packet) {
     const obj = IlpPacket.deserializeIlpPrepare(packet)
