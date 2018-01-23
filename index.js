@@ -68,11 +68,10 @@ class Plugin extends EventEmitter2 {
             statusCode = 400
             headers = {
               'ilp-error-Code': obj.data.code,
-              'ilp-error-Name': obj.data.name,
+              'ilp-error-Name': obj.data.message, // what is called message in ILP Reject is called Name in ilp-over-http-head
               'ilp-error-Triggered-By': obj.data.triggeredBy,
-              'ilp-error-Triggered-At': new Date().toISOString(),
-              'ilp-error-Forwarded-By': '',
-              'ilp-error-Message': obj.data.message,
+              'ilp-error-Triggered-At': new Date().toISOString(), // trigggered-at doesn't exist in ILP Reject
+              'ilp-error-Forwarded-By': '', // forwarded-by doesn't exist in ILP Reject
             }
             break
           default:
@@ -113,11 +112,9 @@ class Plugin extends EventEmitter2 {
         } else {
           return IlpPacket.serializeIlpReject({
             code:          res.headers.get('ilp-error-code'),
-            name:          res.headers.get('ilp-error-name'),
+            message:       res.headers.get('ilp-error-name'), // name header is for ILP Reject Message field
             triggeredBy:   res.headers.get('ilp-error-triggered-by'),
-            triggeredAt:   new Date(res.headers.get('ilp-error-triggered-at')),
-            forwardedBy:   res.headers.get('ilp-error-forwarded-by').split(','),
-            message:       res.headers.get('ilp-error-message'),
+            // ignore forwarded-by and triggered-at
             data: body
           })
         }
