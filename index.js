@@ -50,6 +50,7 @@ class Plugin extends EventEmitter2 {
                 'ilp-error-Name': obj.data.name,
                 'ilp-error-Triggered-By': obj.data.triggeredBy,
                 'ilp-error-Triggered-At': new Date().toISOString(),
+                'ilp-error-Forwarded-By': '',
                 'ilp-error-Message': obj.data.message,
               }
               break
@@ -111,6 +112,7 @@ class Plugin extends EventEmitter2 {
             name:          res.headers.get('ilp-error-name'),
             triggeredBy:   res.headers.get('ilp-error-triggered-by'),
             triggeredAt:   new Date(res.headers.get('ilp-error-triggered-at')),
+            forwardedBy:   res.headers.get('ilp-error-forwarded-by').split(','),
             message:       res.headers.get('ilp-error-message'),
             data: body
           })
