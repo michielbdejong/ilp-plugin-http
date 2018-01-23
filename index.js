@@ -14,18 +14,18 @@ class Plugin extends EventEmitter2 {
     this.opts = opts
   }
 
-  connect () {
+  async connect () {
     if (this.opts.port) {
-      this.server = http.createServer(this.handle.bind(this))
-      return new Promise(resolve => {
+      await new Promise(resolve => {
+        this.server = createServer(this.handle.bind(this))
         this.server.listen(this.opts.port, () => {
           logPlugin('listening for http on port ' + this.opts.port)
-          this._connected = true
-          this.emit('connect')
           resolve()
         })
       })
-    return Promise.resolve()
+    }
+    this._connected = true
+    this.emit('connect')
   }
   disconnect () {
     return new Promise(resolve => this.server.close(() => {
@@ -36,7 +36,7 @@ class Plugin extends EventEmitter2 {
   }
   isConnected () { return this._connected }
 
-  handle(req, res) => {
+  handle(req, res) {
     let chunks = []
     req.on('data', (chunk) => { chunks.push(chunk) })
     req.on('end', () => {
