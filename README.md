@@ -18,3 +18,7 @@ connectors to connect to Amundsen using a simple http endpoint, rather than the 
 which we usually use between JavaScript-based connectors.
 
 This plugin takes two options, `port` and `peerUrl`. TLS is not supported yet. See example.js for a usage example.
+
+## Connecting to Amundsen
+
+To connect to Amundsen using this protocol, use `btp+wss://:${token}@amundsen.ilpdemo.org:1801/head` where `${token}` is your own unique token, which you should generate randomly. You can only connect as a client (sender), not as a server (receiver).
