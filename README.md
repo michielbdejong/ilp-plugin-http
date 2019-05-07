@@ -1,5 +1,7 @@
 # ilp-plugin-http-head
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/michielbdejong/ilp-plugin-http-head.svg)](https://greenkeeper.io/)
+
 
 ## Deprecated
 
